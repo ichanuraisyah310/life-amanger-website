@@ -124,22 +124,22 @@
                     <!-- Pos 2: Tabungan -->
                     <div class="p-3 bg-blue-50/60 border border-blue-200 rounded-xl space-y-2">
                         <span class="text-xs font-bold text-blue-800 uppercase tracking-wider block flex items-center gap-1">
-                            <i data-lucide="piggy-bank" class="w-3.5 h-3.5"></i> 2. Pos Tabungan & Impian (Custom)
+                            <i data-lucide="piggy-bank" class="w-3.5 h-3.5"></i> 2. Pos Tabungan
                         </span>
                         <input type="text" id="input-amt-savings" oninput="handleFormattedInput(this); updateBudgetCalculations()" placeholder="0" class="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
 
                     <!-- Pos 3: Tanggungan -->
-                    <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
+                    <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block flex items-center gap-1">
                                 <i data-lucide="home" class="w-3.5 h-3.5"></i> 3. Pos Tanggungan
                             </span>
-                            <button onclick="toggleCategoryForm('tanggungan', true)" class="text-xs text-amber-700 font-semibold hover:underline flex items-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Tambah
+                            <button onclick="toggleCategoryForm('tanggungan', true)" class="text-xs text-amber-700 font-semibold hover:underline flex items-center gap-1 bg-amber-100/70 px-2 py-0.5 rounded">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Tambah Pos
                             </button>
                         </div>
-                        <div id="tanggungan-list" class="space-y-2"></div>
+                        <div id="tanggungan-list" class="space-y-3"></div>
                         <!-- Inline Form Tambah Tanggungan -->
                         <div id="form-inline-tanggungan" class="hidden bg-white p-2.5 rounded-xl border border-amber-300 space-y-2 mt-2">
                             <input type="text" id="input-tanggungan-name" placeholder="Nama pos..." class="w-full px-2.5 py-1 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-500">
@@ -152,16 +152,16 @@
                     </div>
 
                     <!-- Pos 4: Pos Lainnya -->
-                    <div class="p-3 bg-purple-50/60 border border-purple-200 rounded-xl space-y-2">
+                    <div class="p-3 bg-purple-50/60 border border-purple-200 rounded-xl space-y-3">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-bold text-purple-800 uppercase tracking-wider block flex items-center gap-1">
                                 <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 4. Pos Lainnya
                             </span>
-                            <button onclick="toggleCategoryForm('lainnya', true)" class="text-xs text-purple-700 font-semibold hover:underline flex items-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Tambah
+                            <button onclick="toggleCategoryForm('lainnya', true)" class="text-xs text-purple-700 font-semibold hover:underline flex items-center gap-1 bg-purple-100/70 px-2 py-0.5 rounded">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Tambah Pos
                             </button>
                         </div>
-                        <div id="lainnya-list" class="space-y-2"></div>
+                        <div id="lainnya-list" class="space-y-3"></div>
                         <!-- Inline Form Tambah Lainnya -->
                         <div id="form-inline-lainnya" class="hidden bg-white p-2.5 rounded-xl border border-purple-300 space-y-2 mt-2">
                             <input type="text" id="input-lainnya-name" placeholder="Nama pos..." class="w-full px-2.5 py-1 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-purple-500">
@@ -427,7 +427,6 @@
         function saveData() {
             gatherDataFromUI();
             
-            // Debounce otomatis simpan ke Firebase tanpa popup mengganggu
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(async () => {
                 if (window.db && window.firebaseSetDoc && window.firebaseDoc) {
@@ -437,7 +436,7 @@
                         console.error("Gagal menyinkronkan ke Cloud:", e);
                     }
                 }
-            }, 500); // Menyimpan otomatis 0.5 detik setelah perubahan terakhir
+            }, 500);
 
             updateAllUI();
         }
@@ -458,7 +457,7 @@
             setupNoteKeyboardEvent();
         }
 
-        /* ================= NUMBER FORMATTING ================= */
+        /* ================= NUMBER FORMATTING (SMOOTH BACKSPACE) ================= */
         function formatNumberWithThousandSeparator(val) {
             if (val === null || val === undefined || val === '') return '';
             let str = val.toString().replace(/[^0-9]/g, '');
@@ -471,14 +470,10 @@
         }
 
         function handleFormattedInput(input) {
-            let cursorPosition = input.selectionStart;
-            let originalLength = input.value.length;
-            let rawValue = input.value.replace(/[^0-9]/g, '');
-            input.value = formatNumberWithThousandSeparator(rawValue);
-            let newLength = input.value.length;
-            input.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
-            
-            // Picu simpan otomatis setiap input berubah
+            let originalVal = input.value;
+            let rawValue = originalVal.replace(/[^0-9]/g, '');
+            let formattedValue = formatNumberWithThousandSeparator(rawValue);
+            input.value = formattedValue;
             saveData();
         }
 
@@ -507,6 +502,19 @@
             appData.budget.amtMealMain = parseFormattedNumber(document.getElementById('input-amt-meal-main').value);
             appData.budget.amtMealFree = parseFormattedNumber(document.getElementById('input-amt-meal-free').value);
             appData.budget.amtSavings = parseFormattedNumber(document.getElementById('input-amt-savings').value);
+
+            if (appData.budget.posTanggungan) {
+                appData.budget.posTanggungan.forEach(item => {
+                    let el = document.getElementById(`input-val-${item.id}`);
+                    if (el) item.amount = parseFormattedNumber(el.value);
+                });
+            }
+            if (appData.budget.posLainnya) {
+                appData.budget.posLainnya.forEach(item => {
+                    let el = document.getElementById(`input-val-${item.id}`);
+                    if (el) item.amount = parseFormattedNumber(el.value);
+                });
+            }
         }
 
         function updateBudgetCalculations() {
@@ -514,8 +522,8 @@
             
             const totalMeal = appData.budget.amtMealMain + appData.budget.amtMealFree;
             const totalSavings = appData.budget.amtSavings;
-            const totalTanggungan = appData.budget.posTanggungan.reduce((sum, item) => sum + item.amount, 0);
-            const totalLainnya = appData.budget.posLainnya.reduce((sum, item) => sum + item.amount, 0);
+            const totalTanggungan = (appData.budget.posTanggungan || []).reduce((sum, item) => sum + (item.amount || 0), 0);
+            const totalLainnya = (appData.budget.posLainnya || []).reduce((sum, item) => sum + (item.amount || 0), 0);
             
             const totalAllocated = totalMeal + totalSavings + totalTanggungan + totalLainnya;
             const unallocated = appData.budget.totalIncome - totalAllocated;
@@ -527,14 +535,12 @@
 
             document.getElementById('nav-income').innerText = 'Rp ' + formatNumberWithThousandSeparator(appData.budget.totalIncome);
 
-            // Deficit Color & Label Handling
             const unallocatedEl = document.getElementById('summary-unallocated');
             const navUnallocatedEl = document.getElementById('nav-unallocated');
             const summaryLabelEl = document.getElementById('summary-label-unallocated');
             const progressBarEl = document.getElementById('budget-progress-bar');
 
             if (unallocated < 0) {
-                // Kondisi Defisit (Minus) -> Warna Merah
                 summaryLabelEl.innerText = 'Dana Defisit (Over Budget):';
                 summaryLabelEl.className = 'text-rose-600 font-bold';
                 
@@ -546,7 +552,6 @@
 
                 progressBarEl.className = 'bg-rose-600 h-3 rounded-full transition-all duration-300';
             } else {
-                // Kondisi Normal / Aman
                 summaryLabelEl.innerText = 'Sisa Pemasukan Belum Dialokasikan:';
                 summaryLabelEl.className = 'text-slate-600';
 
@@ -587,55 +592,16 @@
             }
             let amount = parseFormattedNumber(amountInput.value);
 
-            let newItem = { id: 'pos_' + Date.now(), name, amount };
+            let newItem = { id: 'pos_' + Date.now() + Math.floor(Math.random()*1000), name, amount };
             if (type === 'tanggungan') {
+                if(!appData.budget.posTanggungan) appData.budget.posTanggungan = [];
                 appData.budget.posTanggungan.push(newItem);
             } else {
+                if(!appData.budget.posLainnya) appData.budget.posLainnya = [];
                 appData.budget.posLainnya.push(newItem);
             }
 
             toggleCategoryForm(type, false);
-            renderDynamicCategories();
-            saveData();
-        }
-
-        function editCustomCategory(type, id) {
-            let list = (type === 'tanggungan') ? appData.budget.posTanggungan : appData.budget.posLainnya;
-            let item = list.find(i => i.id === id);
-            if (!item) return;
-
-            let container = document.getElementById(`item-${id}`);
-            container.innerHTML = `
-                <div class="flex flex-col gap-2 w-full">
-                    <input type="text" id="edit-name-${id}" value="${item.name}" class="w-full px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                    <input type="text" id="edit-amount-${id}" value="${formatNumberWithThousandSeparator(item.amount)}" oninput="handleFormattedInput(this)" class="w-full px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                    <div class="flex justify-end gap-1.5">
-                        <button onclick="renderDynamicCategories()" class="px-2 py-0.5 text-[10px] bg-slate-200 text-slate-700 rounded">Batal</button>
-                        <button onclick="updateCustomCategory('${type}', '${id}')" class="px-2 py-0.5 text-[10px] bg-indigo-600 text-white rounded font-medium">Simpan</button>
-                    </div>
-                </div>
-            `;
-            lucide.createIcons();
-        }
-
-        function updateCustomCategory(type, id) {
-            let nameInput = document.getElementById(`edit-name-${id}`);
-            let amountInput = document.getElementById(`edit-amount-${id}`);
-            
-            let name = nameInput.value.trim();
-            if (!name) {
-                alert("Nama pos harus diisi!");
-                return;
-            }
-            let amount = parseFormattedNumber(amountInput.value);
-
-            let list = (type === 'tanggungan') ? appData.budget.posTanggungan : appData.budget.posLainnya;
-            let item = list.find(i => i.id === id);
-            if (item) {
-                item.name = name;
-                item.amount = amount;
-            }
-
             renderDynamicCategories();
             saveData();
         }
@@ -653,16 +619,36 @@
         function renderDynamicCategories() {
             let renderList = (list, containerId, type) => {
                 let container = document.getElementById(containerId);
+                if (!list || list.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+                
+                let activeId = document.activeElement ? document.activeElement.id : null;
+
                 container.innerHTML = list.map(item => `
-                    <div id="item-${item.id}" class="flex justify-between items-center text-xs bg-white p-2 rounded-lg border border-slate-100">
-                        <span>${item.name}: <b>Rp ${formatNumberWithThousandSeparator(item.amount)}</b></span>
-                        <div class="flex items-center gap-1.5">
-                            <button onclick="editCustomCategory('${type}', '${item.id}')" title="Edit Pos" class="text-indigo-600 hover:text-indigo-800 p-0.5"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
-                            <button onclick="removeCustomCategory('${type}', '${item.id}')" title="Hapus Pos" class="text-rose-500 hover:text-rose-700 font-bold p-0.5 text-sm">&times;</button>
+                    <div class="space-y-1 bg-white/70 p-2.5 rounded-xl border border-slate-200/80 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[11px] font-semibold text-slate-600 uppercase tracking-wide truncate max-w-[180px]">${item.name}</span>
+                            <button onclick="removeCustomCategory('${type}', '${item.id}')" title="Hapus Pos" class="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-1 rounded transition-colors text-[10px] flex items-center gap-0.5 leading-none font-medium">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i> Hapus
+                            </button>
                         </div>
+                        <input type="text" id="input-val-${item.id}" value="${formatNumberWithThousandSeparator(item.amount)}" oninput="handleFormattedInput(this); updateBudgetCalculations()" placeholder="0" class="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                 `).join('');
+
+                if (activeId && document.getElementById(activeId)) {
+                    let el = document.getElementById(activeId);
+                    el.focus();
+                    let valLength = el.value.length;
+                    el.setSelectionRange(valLength, valLength);
+                }
             };
+
+            if(!appData.budget.posTanggungan) appData.budget.posTanggungan = [];
+            if(!appData.budget.posLainnya) appData.budget.posLainnya = [];
+
             renderList(appData.budget.posTanggungan, 'tanggungan-list', 'tanggungan');
             renderList(appData.budget.posLainnya, 'lainnya-list', 'lainnya');
             updateBudgetCalculations();
@@ -704,6 +690,8 @@
             let target = parseFormattedNumber(document.getElementById('input-dream-target').value);
             let current = parseFormattedNumber(document.getElementById('input-dream-current').value);
 
+            if(!appData.dreams) appData.dreams = [];
+
             if (id) {
                 let dream = appData.dreams.find(d => d.id === id);
                 if (dream) {
@@ -728,6 +716,10 @@
 
         function renderDreams() {
             let container = document.getElementById('dream-list');
+            if(!appData.dreams || appData.dreams.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 col-span-full text-center py-4">Belum ada target tabungan.</p>`;
+                return;
+            }
             container.innerHTML = appData.dreams.map(d => {
                 let percent = d.target > 0 ? Math.min(Math.round((d.current / d.target) * 100), 100) : 0;
                 return `
@@ -953,6 +945,7 @@
             e.preventDefault();
             let title = document.getElementById('input-task-title').value;
             let quadrant = document.getElementById('select-task-quadrant').value;
+            if(!appData.tasks) appData.tasks = [];
             appData.tasks.push({ id: 'task_' + Date.now(), title, quadrant, completed: false });
             document.getElementById('input-task-title').value = '';
             renderTasks();
@@ -973,6 +966,7 @@
         }
 
         function renderTasks() {
+            if(!appData.tasks) appData.tasks = [];
             ['q1', 'q2', 'q3', 'q4'].forEach(q => {
                 let list = appData.tasks.filter(t => t.quadrant === q);
                 document.getElementById(`badge-${q}-count`).innerText = list.length;
@@ -995,6 +989,7 @@
             let title = document.getElementById('input-vault-title').value;
             let url = document.getElementById('input-vault-url').value;
             let tag = document.getElementById('input-vault-tag').value;
+            if(!appData.vault) appData.vault = [];
             appData.vault.push({ id: 'vault_' + Date.now(), title, url, tag });
             document.getElementById('input-vault-title').value = '';
             document.getElementById('input-vault-url').value = '';
@@ -1011,6 +1006,10 @@
 
         function renderVault() {
             let container = document.getElementById('vault-list');
+            if(!appData.vault || appData.vault.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 col-span-full text-center py-4">Belum ada link tersimpan.</p>`;
+                return;
+            }
             container.innerHTML = appData.vault.map(v => `
                 <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
