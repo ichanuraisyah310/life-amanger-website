@@ -63,7 +63,7 @@
                 <div class="h-8 w-px bg-slate-700"></div>
                 <div>
                     <span id="nav-unallocated-label" class="text-slate-400 text-xs block">Sisa Alokasi</span>
-                    <span id="nav-unallocated" class="font-bold text-indigo-400">Rp 0</span>
+                    <span id="nav-unallocated" class="font-bold text-purple-400">Rp 0</span>
                 </div>
             </div>
         </div>
@@ -209,8 +209,8 @@
                         <!-- Allocation Status Bar -->
                         <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                             <div class="flex justify-between text-xs font-semibold">
-                                <span class="text-slate-600" id="summary-label-unallocated">Sisa Pemasukan Belum Dialokasikan:</span>
-                                <span id="summary-unallocated" class="text-indigo-600 font-bold">Rp 0</span>
+                                <span class="text-slate-600" id="summary-label-unallocated">Sisa Alokasi:</span>
+                                <span id="summary-unallocated" class="text-purple-600 font-bold">Rp 0</span>
                             </div>
                             <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
                                 <div id="budget-progress-bar" class="bg-indigo-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
@@ -438,7 +438,7 @@
                 }
             }, 500);
 
-            updateAllUI();
+            updateBudgetCalculations();
         }
 
         async function loadData() {
@@ -612,6 +612,7 @@
         }
 
         function removeCustomCategory(type, id) {
+            gatherDataFromUI(); // Ambil data terbaru dari UI sebelum elemen dihapus agar input lain tidak hilang
             if (type === 'tanggungan') {
                 appData.budget.posTanggungan = appData.budget.posTanggungan.filter(i => i.id !== id);
             } else {
@@ -629,7 +630,11 @@
                     return;
                 }
                 
-                let activeId = document.activeElement ? document.activeElement.id : null;
+                // Cegah re-render total seluruh HTML jika sedang fokus di salah satu input pos dinamis agar tidak ngandat di HP
+                let activeEl = document.activeElement;
+                let activeId = activeEl ? activeEl.id : null;
+                let selectionStart = activeEl ? activeEl.selectionStart : null;
+                let selectionEnd = activeEl ? activeEl.selectionEnd : null;
 
                 container.innerHTML = list.map(item => `
                     <div class="space-y-1 bg-white/70 p-2.5 rounded-xl border border-slate-200/80 shadow-sm">
@@ -643,11 +648,15 @@
                     </div>
                 `).join('');
 
-                if (activeId && document.getElementById(activeId)) {
+                // Kembalikan fokus dan kursor secara presisi agar keyboard HP tidak tertutup/ngandat
+                if (activeId && activeId.startsWith('input-val-') && document.getElementById(activeId)) {
                     let el = document.getElementById(activeId);
                     el.focus();
-                    let valLength = el.value.length;
-                    el.setSelectionRange(valLength, valLength);
+                    if (selectionStart !== null && selectionEnd !== null) {
+                        try {
+                            el.setSelectionRange(selectionStart, selectionEnd);
+                        } catch (err) {}
+                    }
                 }
             };
 
