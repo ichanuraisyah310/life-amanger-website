@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life & Wealth Manager</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- FIREBASE SDK & CLOUD SYNC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyD0iAA1qkQGRfktl-pGTVgNrTe-kpNr1bQ",
+          authDomain: "life-wealth-manager.firebaseapp.com",
+          projectId: "life-wealth-manager",
+          storageBucket: "life-wealth-manager.firebasestorage.app",
+          messagingSenderId: "353098164684",
+          appId: "1:353098164684:web:2255cf6b2283a44cd09569",
+          measurementId: "G-7BXMJNFMRE"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        window.db = db;
+        window.firebaseDoc = doc;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseGetDoc = getDoc;
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col">
+
+    <!-- HEADER / NAVBAR -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-600 rounded-lg">
+                    <i data-lucide="compass" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Life & Wealth Manager</h1>
+                    <p class="text-xs text-slate-400">Personal Productivity & Financial Dashboard</p>
+                </div>
+            </div>
+            <!-- Dynamic Budget Summary Badge -->
+            <div class="flex items-center gap-4 bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 text-sm">
+                <div>
+                    <span class="text-slate-400 text-xs block">Total Pemasukan</span>
+                    <span id="nav-income" class="font-bold text-emerald-400">Rp 0</span>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div>
+                    <span class="text-slate-400 text-xs block">Sisa / Defisit Alokasi</span>
+                    <span id="nav-unallocated" class="font-bold text-indigo-400">Rp 0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- NAVIGATION TABS -->
+        <div class="max-w-7xl mx-auto px-4 mt-2 border-t border-slate-800 overflow-x-auto">
+            <nav class="flex gap-2 py-2" id="tab-buttons">
+                <button onclick="switchTab('budget')" id="tab-btn-budget" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-indigo-600 text-white">
+                    <i data-lucide="wallet" class="w-4 h-4"></i> Kelola Anggaran & Target
+                </button>
+                <button onclick="switchTab('notes')" id="tab-btn-notes" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Notes
+                </button>
+                <button onclick="switchTab('matrix')" id="tab-btn-matrix" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="grid" class="w-4 h-4"></i> Task Prioritizer
+                </button>
+                <button onclick="switchTab('vault')" id="tab-btn-vault" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="bookmark" class="w-4 h-4"></i> Link & Note Vault
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINERS -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+
+        <!-- TAB 1: SMART BUDGET SPLITTER & TARGET -->
+        <section id="tab-budget" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Input Total Income & Categories -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 md:col-span-1 space-y-4">
+                    <h2 class="text-lg font-bold flex items-center gap-2 text-slate-900">
+                        <i data-lucide="circle-dollar-sign" class="text-indigo-600"></i> Input Pemasukan & Pos
+                    </h2>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Total Pemasukan Manual (Rp)</label>
+                        <input type="text" id="input-total-income" oninput="handleFormattedInput(this); updateBudgetCalculations()" placeholder="1.000.000" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-semibold text-slate-800">
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <!-- Pos 1: Kebutuhan Makan -->
+                    <div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-3">
+                        <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block flex items-center gap-1">
+                            <i data-lucide="utensils" class="w-3.5 h-3.5"></i> 1. Pos Makan & Konsumsi
+                        </span>
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-600 mb-1">Makan Pokok Harian (Rp)</label>
+                            <input type="text" id="input-amt-meal-main" oninput="handleFormattedInput(this); updateBudgetCalculations()" placeholder="0" class="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-600 mb-1">Makan Bebas / Suplemen (Rp)</label>
+                            <input type="text" id="input-amt-meal-free" oninput="handleFormattedInput(this); updateBudgetCalculations()" placeholder="0" class="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Pos 2: Tabungan -->
+                    <div class="p-3 bg-blue-50/60 border border-blue-200 rounded-xl space-y-2">
+                        <span class="text-xs font-bold text-blue-800 uppercase tracking-wider block flex items-center gap-1">
+                            <i data-lucide="piggy-bank" class="w-3.5 h-3.5"></i> 2. Pos Tabungan & Impian (Custom)
+                        </span>
+                        <input type="text" id="input-amt-savings" oninput="handleFormattedInput(this); updateBudgetCalculations()" placeholder="0" class="w-full px-3 py-1.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- Pos 3: Tanggungan -->
+                    <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block flex items-center gap-1">
+                                <i data-lucide="home" class="w-3.5 h-3.5"></i> 3. Pos Tanggungan
+                            </span>
+                            <button onclick="toggleCategoryForm('tanggungan', true)" class="text-xs text-amber-700 font-semibold hover:underline flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Tambah
+                            </button>
+                        </div>
+                        <div id="tanggungan-list" class="space-y-2"></div>
+                        <!-- Inline Form Tambah Tanggungan -->
+                        <div id="form-inline-tanggungan" class="hidden bg-white p-2.5 rounded-xl border border-amber-300 space-y-2 mt-2">
+                            <input type="text" id="input-tanggungan-name" placeholder="Nama pos..." class="w-full px-2.5 py-1 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <input type="text" id="input-tanggungan-amount" oninput="handleFormattedInput(this)" placeholder="Nominal (Rp)..." class="w-full px-2.5 py-1 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <div class="flex justify-end gap-1.5">
+                                <button onclick="toggleCategoryForm('tanggungan', false)" class="px-2 py-1 text-[11px] text-slate-500 hover:bg-slate-100 rounded">Batal</button>
+                                <button onclick="saveCustomCategory('tanggungan')" class="px-2.5 py-1 text-[11px] bg-amber-600 text-white rounded font-medium hover:bg-amber-700">Simpan</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pos 4: Pos Lainnya -->
+                    <div class="p-3 bg-purple-50/60 border border-purple-200 rounded-xl space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-purple-800 uppercase tracking-wider block flex items-center gap-1">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 4. Pos Lainnya
+                            </span>
+                            <button onclick="toggleCategoryForm('lainnya', true)" class="text-xs text-purple-700 font-semibold hover:underline flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Tambah
+                            </button>
+                        </div>
+                        <div id="lainnya-list" class="space-y-2"></div>
+                        <!-- Inline Form Tambah Lainnya -->
+                        <div id="form-inline-lainnya" class="hidden bg-white p-2.5 rounded-xl border border-purple-300 space-y-2 mt-2">
+                            <input type="text" id="input-lainnya-name" placeholder="Nama pos..." class="w-full px-2.5 py-1 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-purple-500">
+                            <input type="text" id="input-lainnya-amount" oninput="handleFormattedInput(this)" placeholder="Nominal (Rp)..." class="w-full px-2.5 py-1 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-purple-500">
+                            <div class="flex justify-end gap-1.5">
+                                <button onclick="toggleCategoryForm('lainnya', false)" class="px-2 py-1 text-[11px] text-slate-500 hover:bg-slate-100 rounded">Batal</button>
+                                <button onclick="saveCustomCategory('lainnya')" class="px-2.5 py-1 text-[11px] bg-purple-600 text-white rounded font-medium hover:bg-purple-700">Simpan</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Allocation Summary & Status -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 md:col-span-2 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold flex items-center gap-2 text-slate-900">
+                                <i data-lucide="pie-chart" class="text-indigo-600"></i> Ringkasan Alokasi Dana
+                            </h2>
+                            <div id="sync-status" class="text-xs font-medium text-slate-400 flex items-center gap-1">
+                                <i data-lucide="cloud-check" class="w-4 h-4 text-emerald-500"></i> Auto-saved
+                            </div>
+                        </div>
+                        
+                        <!-- 4 POS CARDS GRID -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                                <span class="text-xs font-semibold text-emerald-600 uppercase">1. Pos Makan & Konsumsi</span>
+                                <p id="summary-meal-total" class="text-xl font-bold text-emerald-900 mt-1">Rp 0</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                                <span class="text-xs font-semibold text-blue-600 uppercase">2. Pos Tabungan</span>
+                                <p id="summary-savings" class="text-xl font-bold text-blue-900 mt-1">Rp 0</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-amber-50 border border-amber-100">
+                                <span class="text-xs font-semibold text-amber-700 uppercase">3. Pos Tanggungan</span>
+                                <p id="summary-tanggungan-total" class="text-xl font-bold text-amber-900 mt-1">Rp 0</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-purple-50 border border-purple-100">
+                                <span class="text-xs font-semibold text-purple-600 uppercase">4. Pos Lainnya</span>
+                                <p id="summary-lainnya-total" class="text-xl font-bold text-purple-900 mt-1">Rp 0</p>
+                            </div>
+                        </div>
+
+                        <!-- Allocation Status Bar -->
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-slate-600" id="summary-label-unallocated">Sisa Pemasukan Belum Dialokasikan:</span>
+                                <span id="summary-unallocated" class="text-indigo-600 font-bold">Rp 0</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                                <div id="budget-progress-bar" class="bg-indigo-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Savings Target & Dream Tracker -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold flex items-center gap-2 text-slate-900">
+                            <i data-lucide="target" class="text-indigo-600"></i> Target & Impian (Savings Tracker)
+                        </h2>
+                        <p class="text-xs text-slate-500">Edit nominal impian atau masukkan tabungan custom</p>
+                    </div>
+                    <button onclick="toggleDreamModal(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-medium px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Tambah Target
+                    </button>
+                </div>
+                <div id="dream-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- TAB 2: NOTES -->
+        <section id="tab-notes" class="space-y-6 hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="file-text" class="text-indigo-600"></i> Notes
+                        </h2>
+                        <p class="text-xs text-slate-500">Tulis ide, catatan harian, atau gunakan format poin & checkbox interaktif di sini</p>
+                    </div>
+                    <div class="text-xs font-medium text-slate-400 flex items-center gap-1">
+                        <i data-lucide="cloud-check" class="w-4 h-4 text-emerald-500"></i> Auto-saved
+                    </div>
+                </div>
+                
+                <!-- Form Buat / Edit Note Baru -->
+                <form id="form-note" onsubmit="handleNoteSubmit(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <input type="hidden" id="input-note-edit-id">
+                    <input type="text" id="input-note-title" required placeholder="Judul Catatan..." class="w-full px-4 py-2 bg-white border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-semibold">
+                    
+                    <!-- Formatting Toolbar -->
+                    <div class="flex flex-wrap gap-2 items-center bg-white p-2 border rounded-xl">
+                        <span class="text-xs text-slate-400 font-medium mr-1">Sisip Format:</span>
+                        <button type="button" onclick="insertNoteFormat('bullet')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg font-medium flex items-center gap-1">
+                            <i data-lucide="list" class="w-3 h-3"></i> Bullet (•)
+                        </button>
+                        <button type="button" onclick="insertNoteFormat('number')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg font-medium flex items-center gap-1">
+                            <i data-lucide="list-ordered" class="w-3 h-3"></i> Nomor (1.)
+                        </button>
+                        <button type="button" onclick="insertNoteFormat('checkbox')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg font-medium flex items-center gap-1">
+                            <i data-lucide="check-square" class="w-3 h-3"></i> Checkbox
+                        </button>
+                    </div>
+
+                    <textarea id="input-note-content" required rows="4" placeholder="Tulis isi catatan di sini... (Tekan Enter untuk lanjut otomatis)" class="w-full px-4 py-2 bg-white border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm resize-none"></textarea>
+                    
+                    <div class="flex justify-end gap-2">
+                        <button type="button" id="btn-cancel-note" onclick="resetNoteForm()" class="hidden px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 text-sm font-medium">Batal</button>
+                        <button type="submit" id="btn-submit-note" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl transition-colors text-sm flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Tambah Catatan
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Daftar Notes Grid -->
+                <div id="notes-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2"></div>
+            </div>
+        </section>
+
+        <!-- TAB 3: TASK PRIORITIZER -->
+        <section id="tab-matrix" class="space-y-6 hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900">
+                    <i data-lucide="check-square" class="text-indigo-600"></i> Eisenhower Task Prioritizer
+                </h2>
+                <form id="form-task" onsubmit="addTask(event)" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <input type="text" id="input-task-title" required placeholder="Judul Tugas..." class="md:col-span-2 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    <select id="select-task-quadrant" class="px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-white">
+                        <option value="q1">🔥 Penting & Mendesak</option>
+                        <option value="q2" selected>📅 Penting & Tidak Mendesak</option>
+                        <option value="q3">⚡ Tidak Penting & Mendesak</option>
+                        <option value="q4">🗑️ Tidak Penting & Tidak Mendesak</option>
+                    </select>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Tambah Task
+                    </button>
+                </form>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-rose-50/50 border border-rose-200 rounded-2xl p-5 flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-4 border-b border-rose-200 pb-2">
+                        <h3 class="font-bold text-rose-800 text-sm">Q1: Penting & Mendesak</h3>
+                        <span id="badge-q1-count" class="text-xs bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div id="quadrant-q1" class="space-y-2 flex-1 min-h-[120px]"></div>
+                </div>
+                <div class="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-5 flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-4 border-b border-indigo-200 pb-2">
+                        <h3 class="font-bold text-indigo-800 text-sm">Q2: Penting & Tidak Mendesak</h3>
+                        <span id="badge-q2-count" class="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div id="quadrant-q2" class="space-y-2 flex-1 min-h-[120px]"></div>
+                </div>
+                <div class="bg-amber-50/50 border border-amber-200 rounded-2xl p-5 flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-4 border-b border-amber-200 pb-2">
+                        <h3 class="font-bold text-amber-800 text-sm">Q3: Mendesak & Tidak Penting</h3>
+                        <span id="badge-q3-count" class="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div id="quadrant-q3" class="space-y-2 flex-1 min-h-[120px]"></div>
+                </div>
+                <div class="bg-slate-100/70 border border-slate-200 rounded-2xl p-5 flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-200 pb-2">
+                        <h3 class="font-bold text-slate-700 text-sm">Q4: Tidak Mendesak & Tidak Penting</h3>
+                        <span id="badge-q4-count" class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div id="quadrant-q4" class="space-y-2 flex-1 min-h-[120px]"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: LINK & NOTE VAULT -->
+        <section id="tab-vault" class="space-y-6 hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900">
+                    <i data-lucide="link" class="text-indigo-600"></i> Simpan Link & Referensi
+                </h2>
+                <form id="form-vault" onsubmit="addVaultItem(event)" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <input type="text" id="input-vault-title" required placeholder="Judul Link / Referensi" class="px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    <input type="url" id="input-vault-url" required placeholder="https://example.com" class="px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    <input type="text" id="input-vault-tag" placeholder="Tag (#Riset, dll)" class="px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="bookmark-plus" class="w-4 h-4"></i> Simpan Ke Vault
+                    </button>
+                </form>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div id="vault-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL ADD/EDIT DREAM TARGET -->
+    <div id="dream-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="dream-modal-title" class="font-bold text-slate-900">Tambah / Edit Target Tabungan</h3>
+                <button onclick="toggleDreamModal(false)" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-dream" onsubmit="saveDream(event)" class="space-y-4">
+                <input type="hidden" id="input-dream-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nama Target / Barang</label>
+                    <input type="text" id="input-dream-name" required placeholder="Contoh: Laptop Baru" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Target Biaya (Rp)</label>
+                    <input type="text" id="input-dream-target" oninput="handleFormattedInput(this)" required placeholder="15.000.000" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tabungan Terkumpul Saat Ini (Rp)</label>
+                    <input type="text" id="input-dream-current" oninput="handleFormattedInput(this)" value="0" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleDreamModal(false)" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-sm">Batal</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl text-sm">Simpan Target</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 mt-auto py-4">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">
+            Life & Wealth Manager &copy; 2026. Real-time Firebase Sync.
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        let appData = {
+            budget: {
+                totalIncome: 0,
+                amtMealMain: 0,
+                amtMealFree: 0,
+                amtSavings: 0,
+                posTanggungan: [],
+                posLainnya: []
+            },
+            dreams: [],
+            notes: [],
+            tasks: [],
+            vault: []
+        };
+
+        const cuteNoteColors = [
+            'bg-amber-50/70 border-amber-200',
+            'bg-pink-50/70 border-pink-200',
+            'bg-emerald-50/70 border-emerald-200',
+            'bg-sky-50/70 border-sky-200',
+            'bg-purple-50/70 border-purple-200',
+            'bg-orange-50/70 border-orange-200'
+        ];
+
+        let saveTimeout = null;
+
+        /* ================= CLOUD SYNC FIREBASE ================= */
+        function saveData() {
+            gatherDataFromUI();
+            
+            // Debounce otomatis simpan ke Firebase tanpa popup mengganggu
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                if (window.db && window.firebaseSetDoc && window.firebaseDoc) {
+                    try {
+                        await window.firebaseSetDoc(window.firebaseDoc(window.db, "manager_data", "main_state"), appData);
+                    } catch (e) {
+                        console.error("Gagal menyinkronkan ke Cloud:", e);
+                    }
+                }
+            }, 500); // Menyimpan otomatis 0.5 detik setelah perubahan terakhir
+
+            updateAllUI();
+        }
+
+        async function loadData() {
+            if (window.db && window.firebaseGetDoc && window.firebaseDoc) {
+                try {
+                    const docSnap = await window.firebaseGetDoc(window.firebaseDoc(window.db, "manager_data", "main_state"));
+                    if (docSnap.exists()) {
+                        appData = docSnap.data();
+                    }
+                } catch (e) {
+                    console.error("Gagal memuat dari Cloud:", e);
+                }
+            }
+            initBudgetForm();
+            updateAllUI();
+            setupNoteKeyboardEvent();
+        }
+
+        /* ================= NUMBER FORMATTING ================= */
+        function formatNumberWithThousandSeparator(val) {
+            if (val === null || val === undefined || val === '') return '';
+            let str = val.toString().replace(/[^0-9]/g, '');
+            return str.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        function parseFormattedNumber(val) {
+            if (!val) return 0;
+            return parseInt(val.toString().replace(/\./g, ''), 10) || 0;
+        }
+
+        function handleFormattedInput(input) {
+            let cursorPosition = input.selectionStart;
+            let originalLength = input.value.length;
+            let rawValue = input.value.replace(/[^0-9]/g, '');
+            input.value = formatNumberWithThousandSeparator(rawValue);
+            let newLength = input.value.length;
+            input.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
+            
+            // Picu simpan otomatis setiap input berubah
+            saveData();
+        }
+
+        /* ================= NAVIGATION TABS ================= */
+        function switchTab(tabId) {
+            ['budget', 'notes', 'matrix', 'vault'].forEach(id => {
+                document.getElementById(`tab-${id}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${id}`).className = "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800";
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tabId}`).className = "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-indigo-600 text-white";
+            lucide.createIcons();
+        }
+
+        /* ================= BUDGET & CUSTOM POS LOGIC ================= */
+        function initBudgetForm() {
+            document.getElementById('input-total-income').value = formatNumberWithThousandSeparator(appData.budget.totalIncome);
+            document.getElementById('input-amt-meal-main').value = formatNumberWithThousandSeparator(appData.budget.amtMealMain);
+            document.getElementById('input-amt-meal-free').value = formatNumberWithThousandSeparator(appData.budget.amtMealFree);
+            document.getElementById('input-amt-savings').value = formatNumberWithThousandSeparator(appData.budget.amtSavings);
+            renderDynamicCategories();
+        }
+
+        function gatherDataFromUI() {
+            appData.budget.totalIncome = parseFormattedNumber(document.getElementById('input-total-income').value);
+            appData.budget.amtMealMain = parseFormattedNumber(document.getElementById('input-amt-meal-main').value);
+            appData.budget.amtMealFree = parseFormattedNumber(document.getElementById('input-amt-meal-free').value);
+            appData.budget.amtSavings = parseFormattedNumber(document.getElementById('input-amt-savings').value);
+        }
+
+        function updateBudgetCalculations() {
+            gatherDataFromUI();
+            
+            const totalMeal = appData.budget.amtMealMain + appData.budget.amtMealFree;
+            const totalSavings = appData.budget.amtSavings;
+            const totalTanggungan = appData.budget.posTanggungan.reduce((sum, item) => sum + item.amount, 0);
+            const totalLainnya = appData.budget.posLainnya.reduce((sum, item) => sum + item.amount, 0);
+            
+            const totalAllocated = totalMeal + totalSavings + totalTanggungan + totalLainnya;
+            const unallocated = appData.budget.totalIncome - totalAllocated;
+
+            document.getElementById('summary-meal-total').innerText = 'Rp ' + formatNumberWithThousandSeparator(totalMeal);
+            document.getElementById('summary-savings').innerText = 'Rp ' + formatNumberWithThousandSeparator(totalSavings);
+            document.getElementById('summary-tanggungan-total').innerText = 'Rp ' + formatNumberWithThousandSeparator(totalTanggungan);
+            document.getElementById('summary-lainnya-total').innerText = 'Rp ' + formatNumberWithThousandSeparator(totalLainnya);
+
+            document.getElementById('nav-income').innerText = 'Rp ' + formatNumberWithThousandSeparator(appData.budget.totalIncome);
+
+            // Deficit Color & Label Handling
+            const unallocatedEl = document.getElementById('summary-unallocated');
+            const navUnallocatedEl = document.getElementById('nav-unallocated');
+            const summaryLabelEl = document.getElementById('summary-label-unallocated');
+            const progressBarEl = document.getElementById('budget-progress-bar');
+
+            if (unallocated < 0) {
+                // Kondisi Defisit (Minus) -> Warna Merah
+                summaryLabelEl.innerText = 'Dana Defisit (Over Budget):';
+                summaryLabelEl.className = 'text-rose-600 font-bold';
+                
+                let deficitText = 'Rp ' + formatNumberWithThousandSeparator(Math.abs(unallocated));
+                unallocatedEl.innerText = '-' + deficitText;
+                unallocatedEl.className = 'text-rose-600 font-bold';
+                navUnallocatedEl.innerText = '-' + deficitText;
+                navUnallocatedEl.className = 'font-bold text-rose-400';
+
+                progressBarEl.className = 'bg-rose-600 h-3 rounded-full transition-all duration-300';
+            } else {
+                // Kondisi Normal / Aman
+                summaryLabelEl.innerText = 'Sisa Pemasukan Belum Dialokasikan:';
+                summaryLabelEl.className = 'text-slate-600';
+
+                let safeText = 'Rp ' + formatNumberWithThousandSeparator(unallocated);
+                unallocatedEl.innerText = safeText;
+                unallocatedEl.className = 'text-indigo-600 font-bold';
+                navUnallocatedEl.innerText = safeText;
+                navUnallocatedEl.className = 'font-bold text-indigo-400';
+
+                progressBarEl.className = 'bg-indigo-600 h-3 rounded-full transition-all duration-300';
+            }
+
+            let progress = appData.budget.totalIncome > 0 ? (totalAllocated / appData.budget.totalIncome) * 100 : 0;
+            if(progress > 100) progress = 100;
+            progressBarEl.style.width = progress + '%';
+        }
+
+        function toggleCategoryForm(type, show) {
+            let formEl = document.getElementById(`form-inline-${type}`);
+            if (show) {
+                formEl.classList.remove('hidden');
+                document.getElementById(`input-${type}-name`).value = '';
+                document.getElementById(`input-${type}-amount`).value = '';
+                document.getElementById(`input-${type}-name`).focus();
+            } else {
+                formEl.classList.add('hidden');
+            }
+        }
+
+        function saveCustomCategory(type) {
+            let nameInput = document.getElementById(`input-${type}-name`);
+            let amountInput = document.getElementById(`input-${type}-amount`);
+            
+            let name = nameInput.value.trim();
+            if (!name) {
+                alert("Nama pos harus diisi!");
+                return;
+            }
+            let amount = parseFormattedNumber(amountInput.value);
+
+            let newItem = { id: 'pos_' + Date.now(), name, amount };
+            if (type === 'tanggungan') {
+                appData.budget.posTanggungan.push(newItem);
+            } else {
+                appData.budget.posLainnya.push(newItem);
+            }
+
+            toggleCategoryForm(type, false);
+            renderDynamicCategories();
+            saveData();
+        }
+
+        function editCustomCategory(type, id) {
+            let list = (type === 'tanggungan') ? appData.budget.posTanggungan : appData.budget.posLainnya;
+            let item = list.find(i => i.id === id);
+            if (!item) return;
+
+            let container = document.getElementById(`item-${id}`);
+            container.innerHTML = `
+                <div class="flex flex-col gap-2 w-full">
+                    <input type="text" id="edit-name-${id}" value="${item.name}" class="w-full px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <input type="text" id="edit-amount-${id}" value="${formatNumberWithThousandSeparator(item.amount)}" oninput="handleFormattedInput(this)" class="w-full px-2 py-1 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <div class="flex justify-end gap-1.5">
+                        <button onclick="renderDynamicCategories()" class="px-2 py-0.5 text-[10px] bg-slate-200 text-slate-700 rounded">Batal</button>
+                        <button onclick="updateCustomCategory('${type}', '${id}')" class="px-2 py-0.5 text-[10px] bg-indigo-600 text-white rounded font-medium">Simpan</button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function updateCustomCategory(type, id) {
+            let nameInput = document.getElementById(`edit-name-${id}`);
+            let amountInput = document.getElementById(`edit-amount-${id}`);
+            
+            let name = nameInput.value.trim();
+            if (!name) {
+                alert("Nama pos harus diisi!");
+                return;
+            }
+            let amount = parseFormattedNumber(amountInput.value);
+
+            let list = (type === 'tanggungan') ? appData.budget.posTanggungan : appData.budget.posLainnya;
+            let item = list.find(i => i.id === id);
+            if (item) {
+                item.name = name;
+                item.amount = amount;
+            }
+
+            renderDynamicCategories();
+            saveData();
+        }
+
+        function removeCustomCategory(type, id) {
+            if (type === 'tanggungan') {
+                appData.budget.posTanggungan = appData.budget.posTanggungan.filter(i => i.id !== id);
+            } else {
+                appData.budget.posLainnya = appData.budget.posLainnya.filter(i => i.id !== id);
+            }
+            renderDynamicCategories();
+            saveData();
+        }
+
+        function renderDynamicCategories() {
+            let renderList = (list, containerId, type) => {
+                let container = document.getElementById(containerId);
+                container.innerHTML = list.map(item => `
+                    <div id="item-${item.id}" class="flex justify-between items-center text-xs bg-white p-2 rounded-lg border border-slate-100">
+                        <span>${item.name}: <b>Rp ${formatNumberWithThousandSeparator(item.amount)}</b></span>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="editCustomCategory('${type}', '${item.id}')" title="Edit Pos" class="text-indigo-600 hover:text-indigo-800 p-0.5"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="removeCustomCategory('${type}', '${item.id}')" title="Hapus Pos" class="text-rose-500 hover:text-rose-700 font-bold p-0.5 text-sm">&times;</button>
+                        </div>
+                    </div>
+                `).join('');
+            };
+            renderList(appData.budget.posTanggungan, 'tanggungan-list', 'tanggungan');
+            renderList(appData.budget.posLainnya, 'lainnya-list', 'lainnya');
+            updateBudgetCalculations();
+            lucide.createIcons();
+        }
+
+        /* ================= SAVINGS & DREAMS TARGET ================= */
+        function toggleDreamModal(show, editId = null) {
+            let modal = document.getElementById('dream-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                if (editId) {
+                    let dream = appData.dreams.find(d => d.id === editId);
+                    if (dream) {
+                        document.getElementById('dream-modal-title').innerText = 'Edit Target Tabungan';
+                        document.getElementById('input-dream-id').value = dream.id;
+                        document.getElementById('input-dream-name').value = dream.name;
+                        document.getElementById('input-dream-target').value = formatNumberWithThousandSeparator(dream.target);
+                        document.getElementById('input-dream-current').value = formatNumberWithThousandSeparator(dream.current);
+                    }
+                } else {
+                    document.getElementById('dream-modal-title').innerText = 'Tambah Target Tabungan';
+                    document.getElementById('input-dream-id').value = '';
+                    document.getElementById('input-dream-name').value = '';
+                    document.getElementById('input-dream-target').value = '';
+                    document.getElementById('input-dream-current').value = '0';
+                }
+            } else {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveDream(e) {
+            e.preventDefault();
+            let id = document.getElementById('input-dream-id').value;
+            let name = document.getElementById('input-dream-name').value;
+            let target = parseFormattedNumber(document.getElementById('input-dream-target').value);
+            let current = parseFormattedNumber(document.getElementById('input-dream-current').value);
+
+            if (id) {
+                let dream = appData.dreams.find(d => d.id === id);
+                if (dream) {
+                    dream.name = name;
+                    dream.target = target;
+                    dream.current = current;
+                }
+            } else {
+                appData.dreams.push({ id: 'dream_' + Date.now(), name, target, current });
+            }
+
+            toggleDreamModal(false);
+            renderDreams();
+            saveData();
+        }
+
+        function deleteDream(id) {
+            appData.dreams = appData.dreams.filter(d => d.id !== id);
+            renderDreams();
+            saveData();
+        }
+
+        function renderDreams() {
+            let container = document.getElementById('dream-list');
+            container.innerHTML = appData.dreams.map(d => {
+                let percent = d.target > 0 ? Math.min(Math.round((d.current / d.target) * 100), 100) : 0;
+                return `
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-slate-800 text-sm">${d.name}</h3>
+                                <div class="flex gap-1">
+                                    <button onclick="toggleDreamModal(true, '${d.id}')" class="text-indigo-600 hover:text-indigo-800 p-1 text-xs"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                                    <button onclick="deleteDream('${d.id}')" class="text-rose-500 hover:text-rose-700 p-1 text-xs"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Terkumpul: <b>Rp ${formatNumberWithThousandSeparator(d.current)}</b> dari Rp ${formatNumberWithThousandSeparator(d.target)}</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                                <span>Progress</span>
+                                <span>${percent}%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        /* ================= NOTES ================= */
+        function insertNoteFormat(type) {
+            let textarea = document.getElementById('input-note-content');
+            let start = textarea.selectionStart;
+            let end = textarea.selectionEnd;
+            let text = textarea.value;
+            let insertion = '';
+
+            if (type === 'bullet') {
+                insertion = '• ';
+            } else if (type === 'number') {
+                let linesBefore = text.substring(0, start).split('\n');
+                let lastLine = linesBefore[linesBefore.length - 1];
+                let match = lastLine.match(/^(\d+)\.\s/);
+                let nextNum = match ? parseInt(match[1]) + 1 : 1;
+                insertion = nextNum + '. ';
+            } else if (type === 'checkbox') {
+                insertion = '☐ ';
+            }
+
+            let prefix = (start > 0 && text[start - 1] !== '\n') ? '\n' : '';
+            let suffix = (end < text.length && text[end] !== '\n') ? '\n' : '';
+
+            let finalInsertion = prefix + insertion + suffix;
+            textarea.value = text.substring(0, start) + finalInsertion + text.substring(end);
+            textarea.focus();
+            let newCursorPos = start + finalInsertion.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }
+
+        function setupNoteKeyboardEvent() {
+            let textarea = document.getElementById('input-note-content');
+            if (!textarea) return;
+            
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let start = this.selectionStart;
+                    let text = this.value;
+                    
+                    let lastNewLine = text.lastIndexOf('\n', start - 1);
+                    let currentLine = text.substring(lastNewLine + 1, start);
+                    
+                    let insertion = '\n';
+                    
+                    let numMatch = currentLine.match(/^(\d+)\.\s/);
+                    let bulletMatch = currentLine.match(/^[•]\s/);
+                    let checkMatch = currentLine.match(/^[☐]\s/);
+
+                    if (numMatch) {
+                        let nextNum = parseInt(numMatch[1]) + 1;
+                        insertion = '\n' + nextNum + '. ';
+                    } else if (bulletMatch) {
+                        insertion = '\n• ';
+                    } else if (checkMatch) {
+                        insertion = '\n☐ ';
+                    }
+
+                    this.value = text.substring(0, start) + insertion + text.substring(this.selectionEnd);
+                    let newCursorPos = start + insertion.length;
+                    this.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+        }
+
+        function handleNoteSubmit(e) {
+            e.preventDefault();
+            let editId = document.getElementById('input-note-edit-id').value;
+            let title = document.getElementById('input-note-title').value;
+            let content = document.getElementById('input-note-content').value;
+            
+            if(!appData.notes) appData.notes = [];
+
+            if (editId) {
+                let note = appData.notes.find(n => n.id === editId);
+                if (note) {
+                    note.title = title;
+                    note.content = content;
+                }
+            } else {
+                appData.notes.unshift({ 
+                    id: 'note_' + Date.now(), 
+                    title, 
+                    content, 
+                    date: new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) 
+                });
+            }
+            
+            resetNoteForm();
+            renderNotes();
+            saveData();
+        }
+
+        function editNote(id) {
+            let note = appData.notes.find(n => n.id === id);
+            if (!note) return;
+            document.getElementById('input-note-edit-id').value = note.id;
+            document.getElementById('input-note-title').value = note.title;
+            document.getElementById('input-note-content').value = note.content;
+            document.getElementById('btn-submit-note').innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Update Catatan`;
+            document.getElementById('btn-cancel-note').classList.remove('hidden');
+            window.scrollTo({ top: 200, behavior: 'smooth' });
+            lucide.createIcons();
+        }
+
+        function resetNoteForm() {
+            document.getElementById('input-note-edit-id').value = '';
+            document.getElementById('input-note-title').value = '';
+            document.getElementById('input-note-content').value = '';
+            document.getElementById('btn-submit-note').innerHTML = `<i data-lucide="plus" class="w-4 h-4"></i> Tambah Catatan`;
+            document.getElementById('btn-cancel-note').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function deleteNote(id) {
+            appData.notes = appData.notes.filter(n => n.id !== id);
+            renderNotes();
+            saveData();
+        }
+
+        function toggleNoteLineCheckbox(noteId, lineIndex) {
+            let note = appData.notes.find(n => n.id === noteId);
+            if (!note) return;
+            let lines = note.content.split('\n');
+            if (lines[lineIndex]) {
+                if (lines[lineIndex].startsWith('☑️ ')) {
+                    lines[lineIndex] = '☐ ' + lines[lineIndex].substring(3);
+                } else if (lines[lineIndex].startsWith('☐ ')) {
+                    lines[lineIndex] = '☑️ ' + lines[lineIndex].substring(3);
+                }
+                note.content = lines.join('\n');
+                renderNotes();
+                saveData();
+            }
+        }
+
+        function renderNotes() {
+            let container = document.getElementById('notes-list');
+            if(!appData.notes || appData.notes.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 col-span-full text-center py-6">Belum ada catatan tersimpan.</p>`;
+                return;
+            }
+            container.innerHTML = appData.notes.map((n, index) => {
+                let colorClass = cuteNoteColors[index % cuteNoteColors.length];
+                
+                let lines = n.content.split('\n').map((line, lineIdx) => {
+                    let escapedLine = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    
+                    if (line.startsWith('☐ ')) {
+                        let textOnly = escapedLine.substring(2);
+                        return `
+                            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs shadow-sm my-1">
+                                <label class="flex items-center gap-2 cursor-pointer w-full">
+                                    <input type="checkbox" onchange="toggleNoteLineCheckbox('${n.id}', ${lineIdx})" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                                    <span class="text-slate-700 font-medium">${textOnly}</span>
+                                </label>
+                            </div>
+                        `;
+                    } else if (line.startsWith('☑️ ')) {
+                        let textOnly = escapedLine.substring(3);
+                        return `
+                            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs shadow-sm my-1">
+                                <label class="flex items-center gap-2 cursor-pointer w-full">
+                                    <input type="checkbox" checked onchange="toggleNoteLineCheckbox('${n.id}', ${lineIdx})" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                                    <span class="line-through text-slate-400 font-medium">${textOnly}</span>
+                                </label>
+                            </div>
+                        `;
+                    }
+                    return `<div class="text-xs text-slate-700 my-0.5 leading-relaxed">${escapedLine}</div>`;
+                }).join('');
+
+                return `
+                    <div class="p-4 rounded-2xl ${colorClass} border shadow-sm flex flex-col justify-between space-y-3 transition-all hover:shadow">
+                        <div>
+                            <div class="flex justify-between items-start gap-2">
+                                <h4 class="font-bold text-slate-900 text-sm">${n.title}</h4>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="editNote('${n.id}')" title="Edit Catatan" class="text-indigo-600 hover:text-indigo-800 p-1"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                    <button onclick="deleteNote('${n.id}')" title="Hapus Catatan" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-slate-500 block mt-0.5">${n.date || ''}</span>
+                            <div class="mt-2 space-y-1">${lines}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        /* ================= TASK PRIORITIZER ================= */
+        function addTask(e) {
+            e.preventDefault();
+            let title = document.getElementById('input-task-title').value;
+            let quadrant = document.getElementById('select-task-quadrant').value;
+            appData.tasks.push({ id: 'task_' + Date.now(), title, quadrant, completed: false });
+            document.getElementById('input-task-title').value = '';
+            renderTasks();
+            saveData();
+        }
+
+        function toggleTask(id) {
+            let task = appData.tasks.find(t => t.id === id);
+            if(task) task.completed = !task.completed;
+            renderTasks();
+            saveData();
+        }
+
+        function deleteTask(id) {
+            appData.tasks = appData.tasks.filter(t => t.id !== id);
+            renderTasks();
+            saveData();
+        }
+
+        function renderTasks() {
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+                let list = appData.tasks.filter(t => t.quadrant === q);
+                document.getElementById(`badge-${q}-count`).innerText = list.length;
+                document.getElementById(`quadrant-${q}`).innerHTML = list.map(t => `
+                    <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs shadow-sm">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask('${t.id}')" class="rounded text-indigo-600 focus:ring-indigo-500">
+                            <span class="${t.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}">${t.title}</span>
+                        </label>
+                        <button onclick="deleteTask('${t.id}')" class="text-rose-400 hover:text-rose-600 font-bold">&times;</button>
+                    </div>
+                `).join('');
+            });
+            lucide.createIcons();
+        }
+
+        /* ================= LINK VAULT ================= */
+        function addVaultItem(e) {
+            e.preventDefault();
+            let title = document.getElementById('input-vault-title').value;
+            let url = document.getElementById('input-vault-url').value;
+            let tag = document.getElementById('input-vault-tag').value;
+            appData.vault.push({ id: 'vault_' + Date.now(), title, url, tag });
+            document.getElementById('input-vault-title').value = '';
+            document.getElementById('input-vault-url').value = '';
+            document.getElementById('input-vault-tag').value = '';
+            renderVault();
+            saveData();
+        }
+
+        function deleteVaultItem(id) {
+            appData.vault = appData.vault.filter(v => v.id !== id);
+            renderVault();
+            saveData();
+        }
+
+        function renderVault() {
+            let container = document.getElementById('vault-list');
+            container.innerHTML = appData.vault.map(v => `
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-2">
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-slate-800 text-sm">${v.title}</h4>
+                            <button onclick="deleteVaultItem('${v.id}')" class="text-rose-500 text-xs font-bold">&times;</button>
+                        </div>
+                        <span class="text-xs text-indigo-600 font-medium inline-block mt-1">${v.tag || ''}</span>
+                    </div>
+                    <a href="${v.url}" target="_blank" class="text-xs text-indigo-500 hover:underline flex items-center gap-1 font-semibold">Buka Link <i data-lucide="external-link" class="w-3 h-3"></i></a>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function updateAllUI() {
+            initBudgetForm();
+            renderDreams();
+            renderNotes();
+            renderTasks();
+            renderVault();
+            lucide.createIcons();
+        }
+
+        window.onload = async () => {
+            await loadData();
+        };
+    </script>
+</body>
+</html>
